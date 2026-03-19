@@ -1,4 +1,4 @@
-FROM serversideup/php:8.2-fpm-nginx AS base
+FROM serversideup/php:8.4-fpm-nginx AS base
 
 LABEL maintainer="ObladenMedia <do@obladen.media>"
 LABEL org.opencontainers.image.source="https://github.com/OuPDO/OMNIPULSE"
