@@ -6,8 +6,8 @@ LABEL org.opencontainers.image.source="https://github.com/OuPDO/OMNIPULSE"
 ENV PHP_OPCACHE_ENABLE=1
 ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 
-# Install PostgreSQL + Redis extensions
-RUN install-php-extensions pdo_pgsql redis
+# Install PHP extensions required by Laravel + Filament
+RUN install-php-extensions pdo_pgsql redis intl
 
 WORKDIR /var/www/html
 
@@ -23,8 +23,6 @@ COPY --from=deps /var/www/html/vendor ./vendor
 COPY . .
 
 RUN composer dump-autoload --optimize --no-dev \
-    && php artisan config:cache \
-    && php artisan route:cache \
     && php artisan view:cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
