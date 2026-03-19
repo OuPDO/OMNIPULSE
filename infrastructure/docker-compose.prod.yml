@@ -1,0 +1,34 @@
+# OMNIPULSE — Production-Referenz (Coolify verwaltet das Deployment)
+# Dieses File dient als Referenz für die Coolify-Konfiguration.
+
+services:
+  backend:
+    image: ghcr.io/obladenmedia/omnipulse-backend:latest
+    container_name: om-backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: pg-om-zentral
+      DB_PORT: 5432
+      DB_DATABASE: om_platform
+      REDIS_HOST: om-redis
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+    depends_on:
+      - postgres
+      - redis
+
+  web:
+    image: ghcr.io/obladenmedia/omnipulse-web:latest
+    container_name: om-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.omnipulse.oblm.de
+    depends_on:
+      - backend
+
+  # Weitere Services: siehe infrastructure/docker-compose.yml
+  # Coolify verwaltet PostgreSQL, Redis, Qdrant etc. als einzelne Services

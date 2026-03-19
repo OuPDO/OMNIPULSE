@@ -1,0 +1,34 @@
+# OMNIPULSE Template — Docker Compose Basis für Kundenprojekte
+# Kopieren und Variablen anpassen.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pg-client-${CLIENT_NAME:-example}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: client_${CLIENT_NAME:-example}_${ENV:-dev}
+      POSTGRES_USER: ${DB_USERNAME:-omnipulse}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-omnipulse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ${CLIENT_NAME:-example}-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  pg_data:
+  redis_data:

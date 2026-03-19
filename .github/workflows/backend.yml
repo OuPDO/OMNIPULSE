@@ -1,0 +1,129 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main, staging]
+    paths:
+      - "apps/backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/oupdo/omnipulse-backend
+
+jobs:
+  test:
+    name: PHP Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: om_platform_test
+          POSTGRES_USER: omnipulse
+          POSTGRES_PASSWORD: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_pgsql, redis, mbstring, xml, ctype, json, bcmath
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: apps/backend/vendor
+          key: composer-${{ hashFiles('apps/backend/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Dependencies
+        working-directory: apps/backend
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Prepare Environment
+        working-directory: apps/backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          sed -i 's/DB_PASSWORD=secret/DB_PASSWORD=testing/' .env
+          sed -i 's/DB_DATABASE=om_platform/DB_DATABASE=om_platform_test/' .env
+
+      - name: Run Migrations
+        working-directory: apps/backend
+        run: php artisan migrate --force
+
+      - name: Run Tests
+        working-directory: apps/backend
+        run: php artisan test
+
+  build:
+    name: Build & Push Docker Image
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract branch name
+        id: branch
+        run: echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/backend
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.branch.outputs.name }}
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trigger Coolify Webhook
+        if: success()
+        run: |
+          if [ "${{ steps.branch.outputs.name }}" = "main" ]; then
+            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK_PROD }}" || true
+          elif [ "${{ steps.branch.outputs.name }}" = "staging" ]; then
+            curl -s -X POST "${{ secrets.COOLIFY_WEBHOOK_STAGING }}" || true
+          fi

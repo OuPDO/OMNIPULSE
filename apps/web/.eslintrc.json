@@ -1,0 +1,3 @@
+{
+  "extends": "@omnipulse/eslint-config/nextjs"
+}

@@ -1,0 +1,104 @@
+{
+  "name": "OMNIPULSE DB Backup → Google Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 2 * * *" }]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Daily 02:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "command": "docker ps --filter 'ancestor=postgres' --filter 'ancestor=postgres:17-alpine' --format '{{.Names}}' | sort -u"
+      },
+      "id": "discover-containers",
+      "name": "Discover PG Containers",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.stdout;\nconst containers = output.trim().split('\\n').filter(Boolean);\nreturn containers.map(name => ({ json: { container: name } }));"
+      },
+      "id": "split-containers",
+      "name": "Split Containers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "command": "=\"CONTAINER={{ $json.container }}\\nDB_USER=$(docker exec $CONTAINER printenv POSTGRES_USER 2>/dev/null || echo omnipulse)\\nTIMESTAMP=$(date +%Y%m%d_%H%M%S)\\nFILE=/tmp/omnipulse-backups/${CONTAINER}_${TIMESTAMP}.sql.gz\\nmkdir -p /tmp/omnipulse-backups\\ndocker exec $CONTAINER pg_dumpall -U $DB_USER | gzip > $FILE\\necho $FILE\""
+      },
+      "id": "run-backup",
+      "name": "Run pg_dumpall",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "name": "={{ $json.stdout.trim().split('/').pop() }}",
+        "folderId": "OMNIPULSE-Backups",
+        "binaryPropertyName": "data"
+      },
+      "id": "upload-gdrive",
+      "name": "Upload to Google Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [880, 0],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "find /tmp/omnipulse-backups -name '*.sql.gz' -mtime +30 -delete && echo 'Cleanup done'"
+      },
+      "id": "cleanup",
+      "name": "Cleanup Old Backups",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "=\"❌ OMNIPULSE Backup FAILED\\n\\nContainer: {{ $json.container }}\\nError: {{ $json.stderr }}\\nTime: {{ new Date().toISOString() }}\""
+      },
+      "id": "telegram-error",
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 02:00": { "main": [[{ "node": "Discover PG Containers", "type": "main", "index": 0 }]] },
+    "Discover PG Containers": { "main": [[{ "node": "Split Containers", "type": "main", "index": 0 }]] },
+    "Split Containers": { "main": [[{ "node": "Run pg_dumpall", "type": "main", "index": 0 }]] },
+    "Run pg_dumpall": { "main": [[{ "node": "Upload to Google Drive", "type": "main", "index": 0 }]] },
+    "Upload to Google Drive": { "main": [[{ "node": "Cleanup Old Backups", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [{ "name": "backup" }, { "name": "omnipulse" }]
+}

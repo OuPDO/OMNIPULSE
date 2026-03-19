@@ -1,0 +1,59 @@
+# === Dependencies ===
+node_modules/
+vendor/
+.pnpm-store/
+
+# === Build Outputs ===
+dist/
+build/
+.next/
+.expo/
+*.tsbuildinfo
+
+# === Environment ===
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Logs ===
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# === Laravel ===
+apps/backend/storage/*.key
+apps/backend/storage/framework/cache/*
+apps/backend/storage/framework/sessions/*
+apps/backend/storage/framework/views/*
+apps/backend/bootstrap/cache/*
+
+# === Testing ===
+coverage/
+.phpunit.result.cache
+
+# === Turbo ===
+.turbo/
+
+# === Docker ===
+docker-compose.override.yml
+
+# === Tokens (generated) ===
+packages/tokens/build/
+
+# === Secrets ===
+*.pem
+*.key
+credentials.json
+service-account.json

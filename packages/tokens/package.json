@@ -1,0 +1,12 @@
+{
+  "name": "@omnipulse/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node src/build.mjs",
+    "clean": "rm -rf build/"
+  },
+  "dependencies": {
+    "style-dictionary": "^4.3.0"
+  }
+}
