@@ -1,0 +1,5 @@
+{
+  "name": "feature-dev",
+  "version": "1.0.0",
+  "description": "OMNIPULSE feature development workflow with codebase exploration, architecture design, and quality review — adapted for Laravel 12 + Filament v5 + Next.js 16 monorepo"
+}

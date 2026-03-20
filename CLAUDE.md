@@ -52,6 +52,93 @@ pnpm type-check      # TypeScript prüfen
 pnpm tokens:build    # Design-Tokens generieren
 ```
 
+## Entwicklungs-Workflow
+
+### Gold-Standard: Superpowers Plugin
+
+Das **Superpowers Plugin** ist der verbindliche Entwicklungsstandard für alle nicht-trivialen Arbeiten. Es steuert den gesamten Lifecycle automatisch über Skills:
+
+```
+Brainstorming → Writing Plans → Executing Plans → Verification → Code Review → Finish Branch
+```
+
+**Kern-Skills und wann sie greifen:**
+
+| Skill | Wann |
+|-------|------|
+| `superpowers:brainstorming` | **Immer vor kreativer Arbeit** — Features, Komponenten, Architekturänderungen |
+| `superpowers:writing-plans` | Nach genehmigtem Design, vor Code |
+| `superpowers:subagent-driven-development` | Plan ausführen: 1 Subagent pro Task + 2-Stage Review |
+| `superpowers:executing-plans` | Alternative: Plan inline ausführen mit Checkpoints |
+| `superpowers:test-driven-development` | Bei jeder Implementierung: RED → GREEN → REFACTOR |
+| `superpowers:systematic-debugging` | Bei Bugs: 4-Phasen Root-Cause-Analyse |
+| `superpowers:verification-before-completion` | **Immer vor Completion-Claims** — Evidenz vor Behauptungen |
+| `superpowers:requesting-code-review` | Code Review vor Merge |
+| `superpowers:using-git-worktrees` | Isolierte Workspaces für Feature-Branches |
+| `superpowers:finishing-a-development-branch` | Branch abschließen: Merge/PR/Keep/Discard |
+| `superpowers:dispatching-parallel-agents` | Parallele Subagent-Workflows |
+
+**Prioritäts-Regel:** Wenn auch nur 1% Chance besteht, dass ein Superpowers-Skill relevant ist → Skill aufrufen. Im Zweifel immer nutzen.
+
+### `/feature-dev` — Ergänzender Feature-Workflow
+
+Das Feature-Dev Plugin (`.claude/plugins/feature-dev/`) ergänzt Superpowers mit OMNIPULSE-spezifischen Agents für schnelle Codebase-Analyse:
+
+- **code-explorer** (gelb) — Codebase-Analyse, kennt Monorepo-Struktur & Module
+- **code-architect** (grün) — Architektur-Entwürfe mit OMNIPULSE-Constraints
+- **code-reviewer** (rot) — Prüft gegen alle CLAUDE.md-Regeln, Confidence ≥ 80
+
+**Nutzung:** `/feature-dev Beschreibung des Features` — kann mit Superpowers kombiniert werden.
+
+### Quick Fix — Triviale Änderungen
+
+Für einfache Fixes ohne Architekturentscheidung (Typos, Config, 1-Zeilen-Bug-Fix):
+1. Context7 nur wenn API-Unsicherheit besteht
+2. Direkt implementieren
+3. Playwright-Check wenn UI betroffen
+4. Verification before Completion — auch bei Quick Fixes gilt: Evidenz vor Behauptungen
+
+### CLAUDE.md-Pflege — Projekt-Gedächtnis aktuell halten
+
+Das **claude-md-management Plugin** sorgt dafür, dass alle CLAUDE.md-Dateien aktuell bleiben:
+
+- **`/revise-claude-md`** — Am Ende einer Session: Learnings in CLAUDE.md aufnehmen
+- **`claude-md-improver` Skill** — Periodisch oder nach größeren Änderungen: Audit aller CLAUDE.md-Dateien gegen Codebase-Stand
+
+**Wann CLAUDE.md aktualisieren:**
+
+| Auslöser | Aktion |
+|----------|--------|
+| Neues Modul/Feature abgeschlossen | Prüfen ob Root + Modul-CLAUDE.md aktuell sind |
+| Neue Befehle/Patterns entdeckt | In passende CLAUDE.md aufnehmen |
+| Größerer Meilenstein erreicht | `/revise-claude-md` + `claude-md-improver` Audit |
+| Tech-Stack-Änderung (Package-Upgrade, neue Dependency) | Sofort aktualisieren |
+| Session mit vielen Learnings beenden | `/revise-claude-md` |
+
+**CLAUDE.md Hierarchie für OMNIPULSE:**
+```
+CLAUDE.md                              → Root: Tech Stack, Workflows, Regeln
+├── apps/backend/CLAUDE.md             → Laravel/Filament-spezifisch
+│   └── app/Modules/*/CLAUDE.md        → Modul-spezifisch (CRM, Billing, etc.)
+├── apps/web/CLAUDE.md                 → Next.js-spezifisch
+├── apps/mobile/CLAUDE.md              → Expo-spezifisch
+└── packages/*/CLAUDE.md               → Package-spezifisch (types, tokens, etc.)
+```
+
+**Prinzip:** Jede CLAUDE.md dokumentiert nur, was für ihren Scope relevant ist. Keine Duplikation zwischen Ebenen.
+
+## Pflicht-Tools in allen Workflows
+
+### Context7 Plugin — Doku-Recherche
+- **Wann:** Neue APIs, unbekannte Libraries, Version-Unsicherheit (Laravel 12, Next.js 16, Filament v5, Tailwind v4)
+- **Wie:** Erst Library-ID auflösen, dann Doku abfragen
+- **Überspringen wenn:** Pattern bekannt & sicher, einfacher Bug-Fix ohne neue APIs
+
+### Playwright CLI — UI-Verifikation
+- **IMMER** nach UI-Änderungen, Routing-Änderungen, Auth/Middleware-Änderungen
+- **Optional** bei reinen Backend-Logik-Änderungen ohne UI-Impact
+- Screenshots, Interaktionen, Console-Error-Checks
+
 ## Regeln
 
 1. **TypeScript strict** — Keine `any`-Typen, explizite Return-Typen
@@ -65,6 +152,10 @@ pnpm tokens:build    # Design-Tokens generieren
 9. **shadcn/ui** mit TweakCN-Theme für alle Web-UI-Komponenten
 10. **Design Tokens** aus `packages/tokens/` nutzen, nie Farben hardcoden
 11. **Playwright CLI** zum Testen von Web-Oberflächen nutzen (playwright-cli Skill)
+12. **Context7 Plugin** für Doku-Checks bei neuen/unsicheren APIs nutzen
+13. **Superpowers Plugin** als Gold-Standard für alle Entwicklungs-Workflows
+14. **`/feature-dev`** für OMNIPULSE-spezifische Codebase-Analyse bei neuen Features
+15. **CLAUDE.md-Pflege** nach Meilensteinen und größeren Features — `/revise-claude-md` + Audit
 
 ## Naming
 

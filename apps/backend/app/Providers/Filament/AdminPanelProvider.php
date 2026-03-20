@@ -29,6 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('OMNIPULSE Admin')
             ->login()
             ->spa()
+            ->favicon(asset('favicon.svg'))
             ->colors([
                 'primary' => Color::hex('#F5C754'),  // OM-GoldenSaffron
                 'danger' => Color::hex('#F55F52'),   // OM-CoralBlaze
